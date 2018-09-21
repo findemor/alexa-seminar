@@ -1,4 +1,4 @@
-lambda.js// Lambda Function code for Alexa.
+// Lambda Function code for Alexa.
 // Paste this into your index.js file. 
 
 const Alexa = require("ask-sdk");
@@ -14,6 +14,21 @@ se ejecuta cuando la anterior indica true.
 
 en responseBuilder es donde se genera el output, como por ejemplo el repromt, las cards, etc.
 en el request es donde viene el imput.
+
+
+previousIntent permite saber cual es el intent del cual viene el usuario.
+
+ErrorHandler se va a disparar siempre que haya un error en el codigo fuente, de sintaxis, o lo que sea.
+
+
+para ver que valores tienen los slots, hay que ir a filledSlots
+filledSlots[item].resolutions.resolutionsPerAuthority[0].values[0].value.name
+En este ejemplo hay una funcion que se llama getSlotValues que automaticamente los mete todos a un array para que los podamos utilizar
+
+para debugear, puedo coger el input y meterlo en Test events - Alexa Start session como template, y pegar el input.
+Tambien podemor ir a cloudwatch (al servicio) y buscar con el identificador del ARN, y ahi veremos ejecuciones reales. O DIRECTAMENTE DESDE MONITORING en la pantalla de la funcion lambda
+
+Se puede hacer account linking, con oauth 2.0, en la aplicacion movil de gestion de alexa, y luego eso se tiene disponible (el acceso) durante la sesión del usuario. Pero ojo porque dicen que es bastante tedioso y genera casos de uso muy complejos. Recomiendan evitar matar moscas a cañonazos
 
 **/
 
@@ -66,7 +81,7 @@ const AMAZON_CancelIntent_Handler =  {
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
 
-        let say = 'Okay, talk to you later! ';
+        let say = 'Vale pues hablamos luego! ';
 
         return responseBuilder
             .speak(say)
@@ -89,19 +104,19 @@ const AMAZON_HelpIntent_Handler =  {
         let intents = getCustomIntents();
         let sampleIntent = randomElement(intents);
 
-        let say = 'You asked for help. '; 
+        let say = ' Necesitas ayuda, mendrugo '; 
 
         let previousIntent = getPreviousIntent(sessionAttributes);
         if (previousIntent && !handlerInput.requestEnvelope.session.new) {
-             say += 'Your last intent was ' + previousIntent + '. ';
+             say += 'Tu ultimo intent fue ' + previousIntent + '. ';
          }
         // say +=  'I understand  ' + intents.length + ' intents, '
 
-        say += ' Here something you can ask me, ' + getSampleUtterance(sampleIntent);
+        say += ' Algo que puedes preguntarme, ' + getSampleUtterance(sampleIntent);
 
         return responseBuilder
             .speak(say)
-            .reprompt('try again, ' + say)
+            .reprompt('intentalo de nuevo, ' + say)
             .getResponse();
     },
 };
@@ -117,7 +132,7 @@ const AMAZON_StopIntent_Handler =  {
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
 
-        let say = 'Okay, talk to you later! ';
+        let say = '¡Vale, nos hablamos! ';
 
         return responseBuilder
             .speak(say)
@@ -136,12 +151,12 @@ const AMAZON_NavigateHomeIntent_Handler =  {
         const responseBuilder = handlerInput.responseBuilder;
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        let say = 'Hello from AMAZON.NavigateHomeIntent. ';
+        let say = 'Hola desde AMAZON.NavigateHomeIntent. ';
 
 
         return responseBuilder
             .speak(say)
-            .reprompt('try again, ' + say)
+            .reprompt('intentalo de nuevo, macho, ' + say)
             .getResponse();
     },
 };
@@ -158,7 +173,7 @@ const RecommendationIntent_Handler =  {
         const responseBuilder = handlerInput.responseBuilder;
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        let say = 'Hello from RecommendationIntent. ';
+        let say = 'Hola desde RecommendationIntent. ';
 
         let slotStatus = '';
         let resolvedSlot;
@@ -169,21 +184,21 @@ const RecommendationIntent_Handler =  {
         // console.log('***** slotValues: ' +  JSON.stringify(slotValues, null, 2));
         //   SLOT: recurso 
         if (slotValues.recurso.heardAs && slotValues.recurso.heardAs !== '') {
-            slotStatus += ' slot recurso was heard as ' + slotValues.recurso.heardAs + '. ';
+            slotStatus += ' slot recurso fué: ' + slotValues.recurso.heardAs + '. ';
         } else {
-            slotStatus += 'slot recurso is empty. ';
+            slotStatus += 'slot recurso esta vacio. ';
         }
         if (slotValues.recurso.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'a valid ';
+            slotStatus += 'uno valido ';
             if(slotValues.recurso.resolved !== slotValues.recurso.heardAs) {
-                slotStatus += 'synonym for ' + slotValues.recurso.resolved + '. '; 
+                slotStatus += 'sinonimo para ' + slotValues.recurso.resolved + '. '; 
                 } else {
-                slotStatus += 'match. '
+                slotStatus += 'coincidencia. '
             } // else {
                 //
         }
         if (slotValues.recurso.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'which did not match any slot value. ';
+            slotStatus += 'no coincidió con ningun slot. ';
             console.log('***** consider adding "' + slotValues.recurso.heardAs + '" to the custom slot type used by slot recurso! '); 
         }
 
@@ -192,21 +207,21 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: tipo 
         if (slotValues.tipo.heardAs && slotValues.tipo.heardAs !== '') {
-            slotStatus += ' slot tipo was heard as ' + slotValues.tipo.heardAs + '. ';
+            slotStatus += ' slot tipo fué ' + slotValues.tipo.heardAs + '. ';
         } else {
-            slotStatus += 'slot tipo is empty. ';
+            slotStatus += 'slot tipo está vacio. ';
         }
         if (slotValues.tipo.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'a valid ';
+            slotStatus += 'uno valido ';
             if(slotValues.tipo.resolved !== slotValues.tipo.heardAs) {
-                slotStatus += 'synonym for ' + slotValues.tipo.resolved + '. '; 
+                slotStatus += 'sinonimo para ' + slotValues.tipo.resolved + '. '; 
                 } else {
-                slotStatus += 'match. '
+                slotStatus += 'coincidencia. '
             } // else {
                 //
         }
         if (slotValues.tipo.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'which did not match any slot value. ';
+            slotStatus += 'no encaja en ningun slot. ';
             console.log('***** consider adding "' + slotValues.tipo.heardAs + '" to the custom slot type used by slot tipo! '); 
         }
 
@@ -215,21 +230,21 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: presupuesto 
         if (slotValues.presupuesto.heardAs && slotValues.presupuesto.heardAs !== '') {
-            slotStatus += ' slot presupuesto was heard as ' + slotValues.presupuesto.heardAs + '. ';
+            slotStatus += ' slot presupuesto era ' + slotValues.presupuesto.heardAs + '. ';
         } else {
-            slotStatus += 'slot presupuesto is empty. ';
+            slotStatus += 'slot presupuesto está vacio. ';
         }
         if (slotValues.presupuesto.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'a valid ';
+            slotStatus += 'uno valido ';
             if(slotValues.presupuesto.resolved !== slotValues.presupuesto.heardAs) {
-                slotStatus += 'synonym for ' + slotValues.presupuesto.resolved + '. '; 
+                slotStatus += 'sinonimo para' + slotValues.presupuesto.resolved + '. '; 
                 } else {
-                slotStatus += 'match. '
+                slotStatus += ' coincidencia. '
             } // else {
                 //
         }
         if (slotValues.presupuesto.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'which did not match any slot value. ';
+            slotStatus += 'no encaja en ningun slot. ';
             console.log('***** consider adding "' + slotValues.presupuesto.heardAs + '" to the custom slot type used by slot presupuesto! '); 
         }
 
@@ -238,21 +253,21 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: temporada 
         if (slotValues.temporada.heardAs && slotValues.temporada.heardAs !== '') {
-            slotStatus += ' slot temporada was heard as ' + slotValues.temporada.heardAs + '. ';
+            slotStatus += ' slot temporada era ' + slotValues.temporada.heardAs + '. ';
         } else {
-            slotStatus += 'slot temporada is empty. ';
+            slotStatus += 'slot temporada está vacio. ';
         }
         if (slotValues.temporada.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'a valid ';
+            slotStatus += 'uno valido ';
             if(slotValues.temporada.resolved !== slotValues.temporada.heardAs) {
-                slotStatus += 'synonym for ' + slotValues.temporada.resolved + '. '; 
+                slotStatus += 'sinonimo para ' + slotValues.temporada.resolved + '. '; 
                 } else {
-                slotStatus += 'match. '
+                slotStatus += ' coincidencia. '
             } // else {
                 //
         }
         if (slotValues.temporada.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'which did not match any slot value. ';
+            slotStatus += 'no encaja en ningun slot. ';
             console.log('***** consider adding "' + slotValues.temporada.heardAs + '" to the custom slot type used by slot temporada! '); 
         }
 
@@ -265,7 +280,7 @@ const RecommendationIntent_Handler =  {
 
         return responseBuilder
             .speak(say)
-            .reprompt('try again, ' + say)
+            .reprompt('otra vez por favor, ' + say)
             .getResponse();
     },
 };
@@ -278,15 +293,15 @@ const LaunchRequest_Handler =  {
     handle(handlerInput) {
         const responseBuilder = handlerInput.responseBuilder;
 
-        let say = 'hello' + ' and welcome to ' + invocationName + ' ! Say help to hear some options.';
+        let say = 'Estás en tu ' + invocationName + ' favorita! ¿Que puedo hacer por ti?.';
 
         let skillTitle = capitalize(invocationName);
 
 
         return responseBuilder
             .speak(say)
-            .reprompt('try again, ' + say)
-            .withStandardCard('Welcome!', 
+            .reprompt('Prueba de nuevo, ' + say)
+            .withStandardCard('Bienvenido!', 
               'Hello!\nThis is a card for your skill, ' + skillTitle,
                welcomeCardImg.smallImageUrl, welcomeCardImg.largeImageUrl)
             .getResponse();
@@ -299,7 +314,7 @@ const SessionEndedHandler =  {
         return request.type === 'SessionEndedRequest';
     },
     handle(handlerInput) {
-        console.log(`Session ended with reason: ${handlerInput.requestEnvelope.request.reason}`);
+        console.log(`La sesion terminó por la siguiente razón: ${handlerInput.requestEnvelope.request.reason}`);
         return handlerInput.responseBuilder.getResponse();
     }
 };
@@ -311,12 +326,12 @@ const ErrorHandler =  {
     handle(handlerInput, error) {
         const request = handlerInput.requestEnvelope.request;
 
-        console.log(`Error handled: ${error.message}`);
+        console.log(`Error manejado: ${error.message}`);
         // console.log(`Original Request was: ${JSON.stringify(request, null, 2)}`);
 
         return handlerInput.responseBuilder
-            .speak(`Sorry, your skill got this error.  ${error.message} `)
-            .reprompt(`Sorry, your skill got this error.  ${error.message} `)
+            .speak(`Lo siento, tu skill ha petado.  ${error.message} `)
+            .reprompt(`Esto se ha roto.  ${error.message} `)
             .getResponse();
     }
 };
@@ -531,11 +546,11 @@ function timeDelta(t1, t2) {
  
  
     if (span.timeSpanHR < 2) { 
-        span.timeSpanDesc = span.timeSpanMIN + " minutes"; 
+        span.timeSpanDesc = span.timeSpanMIN + " minutos"; 
     } else if (span.timeSpanDAY < 2) { 
-        span.timeSpanDesc = span.timeSpanHR + " hours"; 
+        span.timeSpanDesc = span.timeSpanHR + " horas"; 
     } else { 
-        span.timeSpanDesc = span.timeSpanDAY + " days"; 
+        span.timeSpanDesc = span.timeSpanDAY + " dias"; 
     } 
  
  
