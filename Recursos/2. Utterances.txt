@@ -1,0 +1,18 @@
+2. Utterances
+
+## Pensar en otras formas (5) de decir lo que se esta pidiendo., Pensar en sinonimos y verbos alternativos.
+
+Ejemplos:
+
+1. Alexa, dile a "Agencia de viajes" que necesito unas vacaciones urgentemente.
+2. Alexa, busca vacaciones baratas en "Agencia de viajes"
+3. Alexa, abre "Agencia de viajes" y busca vacaciones a todo lujo en la montaña este fin de semana.
+4. Alexa, lanza "Agencia de viajes" y recomiendame donde puedo ir para comer bien.
+5. Alexa, pregunta a "Agencia de viajes" donde puedo ir el proximo verano para hacer deporte sin gastarme mucho.
+
+_Es recomendable poner informacion parcial de todas las opciones. Es recomendable tener de 7 a 30 enunciados_
+
+6. ...
+
+
+

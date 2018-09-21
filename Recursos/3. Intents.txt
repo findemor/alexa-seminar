@@ -1,0 +1,21 @@
+3. Intents
+
+# Que otras cosas puede hacer el usuario. Vincula los Utterances a tus Intents.
+
+* Vacaciones: -> Intent.VacacionesIntent
+  * Descanso, viaje, excursion, escapada.   
+* Hoteles: -> Intent.HotelesIntent
+  * Restaurantes
+
+* Tipo: 
+  * Playa, costa, mar
+  * Montaña, monte, sierra
+  * Gastronomico, comida, comer bien
+  * Cultural, artistico
+  * Deportes, ski, surf
+* Presupuesto: 
+  * caro, lujo, AMAZON_NUMBER
+  * barato, poco dinero, AMAZON_NUMBER
+* Temporada:
+  * verano, calor, veraniego
+  * invierno, fesco, invernales
