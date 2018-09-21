@@ -1,0 +1,16 @@
+Happy Path
+
+U: Alexa, busca Vacaciones
+A: Que tipo de actividad quieres realizar?
+U: Quiero ir a la playa
+A: ¿Cual es tu presupuesto?
+U: No me quiero gastar mucho
+A: ¿Cuando querrias viajar?
+U: Dentro de un mes.
+A: Creo que la mejor opcion es XXXXX. Ojala pudiera ir contigo.
+
+
+Parametros recogidos:
+Tipo: Playa, Montaña, gastronomico, cultural, deportes
+Precio: caro, alto
+Temporada: verano, invierno
