@@ -16,7 +16,6 @@ en responseBuilder es donde se genera el output, como por ejemplo el repromt, la
 en el request es donde viene el imput.
 
 
-previousIntent permite saber cual es el intent del cual viene el usuario.
 
 ErrorHandler se va a disparar siempre que haya un error en el codigo fuente, de sintaxis, o lo que sea.
 
@@ -30,7 +29,32 @@ Tambien podemor ir a cloudwatch (al servicio) y buscar con el identificador del 
 
 Se puede hacer account linking, con oauth 2.0, en la aplicacion movil de gestion de alexa, y luego eso se tiene disponible (el acceso) durante la sesión del usuario. Pero ojo porque dicen que es bastante tedioso y genera casos de uso muy complejos. Recomiendan evitar matar moscas a cañonazos
 
+
+HAY algunas notas por el codigo: buscar MJGS NOTA
+
+
+hay que echar un ojo a: getSessionAttributes y persistenceAttributes (guarda en DynamoDB)
+
+por ejempo: skill-sample-nodejs-highlowgame -> en el repositorio de github de alexa
+
+handlerInput.attributesManager
+attributesManager.getPersistentAttributes()
+attributes.gamesPlayed  =0;
+attributesManager.setSessionAttributes(attributes);
+[...]
+withTableName('...')
+.withAutoCreateTable(true)
+
+hay que dara permisos en dynamo. En la funcion lambda, buscamos como se ve el role (abajo del todo), podermos dar acceso a este rol a Dynamo, o crear un nuevo rol que tenga acceso a las dos cosas.
+Vamos a REsource Groups, vamos a roles, y hacemos un Attach permissions. Creamos un policy para vincularlo a Dynamo. Le dmos full access al principio, pero en produccion se lo tenemos que dar lo menos permisivo posible.
 **/
+
+// Lambda Function code for Alexa.
+// Paste this into your index.js file. 
+
+const Alexa = require("ask-sdk");
+const https = require("https");
+
 
 
 const invocationName = "agencia de viajes";
@@ -81,7 +105,7 @@ const AMAZON_CancelIntent_Handler =  {
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
 
-        let say = 'Vale pues hablamos luego! ';
+        let say = 'Okay, talk to you later! ';
 
         return responseBuilder
             .speak(say)
@@ -104,19 +128,19 @@ const AMAZON_HelpIntent_Handler =  {
         let intents = getCustomIntents();
         let sampleIntent = randomElement(intents);
 
-        let say = ' Necesitas ayuda, mendrugo '; 
+        let say = 'You asked for help. '; 
 
         let previousIntent = getPreviousIntent(sessionAttributes);
         if (previousIntent && !handlerInput.requestEnvelope.session.new) {
-             say += 'Tu ultimo intent fue ' + previousIntent + '. ';
+             say += 'Your last intent was ' + previousIntent + '. ';
          }
         // say +=  'I understand  ' + intents.length + ' intents, '
 
-        say += ' Algo que puedes preguntarme, ' + getSampleUtterance(sampleIntent);
+        say += ' Here something you can ask me, ' + getSampleUtterance(sampleIntent);
 
         return responseBuilder
             .speak(say)
-            .reprompt('intentalo de nuevo, ' + say)
+            .reprompt('try again, ' + say)
             .getResponse();
     },
 };
@@ -132,7 +156,7 @@ const AMAZON_StopIntent_Handler =  {
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
 
-        let say = '¡Vale, nos hablamos! ';
+        let say = 'Okay, talk to you later! ';
 
         return responseBuilder
             .speak(say)
@@ -151,29 +175,35 @@ const AMAZON_NavigateHomeIntent_Handler =  {
         const responseBuilder = handlerInput.responseBuilder;
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        let say = 'Hola desde AMAZON.NavigateHomeIntent. ';
+        let say = 'Hello from AMAZON.NavigateHomeIntent. ';
 
 
         return responseBuilder
             .speak(say)
-            .reprompt('intentalo de nuevo, macho, ' + say)
+            .reprompt('try again, ' + say)
             .getResponse();
     },
 };
 
 const RecommendationIntent_Handler =  {
-    // si esto devuelve true, entonces este handler se ejecutara, en otro caso no.
     canHandle(handlerInput) {
         const request = handlerInput.requestEnvelope.request;
         return request.type === 'IntentRequest' && request.intent.name === 'RecommendationIntent' ;
     },
-    // esta funcion se ejecutará si canHandle es true
     handle(handlerInput) {
         const request = handlerInput.requestEnvelope.request;
         const responseBuilder = handlerInput.responseBuilder;
         let sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
-        let say = 'Hola desde RecommendationIntent. ';
+        // delegate to Alexa to collect all the required slots 
+        const currentIntent = request.intent; 
+        if (request.dialogState && request.dialogState !== 'COMPLETED') {  //mjgs nota: ESTO ES LO QUE HACE QUE EL DIALOGO CONTINUE SI FALTA ALGO
+            return handlerInput.responseBuilder
+                .addDelegateDirective(currentIntent)
+                .getResponse();
+
+        } 
+        let say = 'Hello from RecommendationIntent. ';
 
         let slotStatus = '';
         let resolvedSlot;
@@ -184,21 +214,21 @@ const RecommendationIntent_Handler =  {
         // console.log('***** slotValues: ' +  JSON.stringify(slotValues, null, 2));
         //   SLOT: recurso 
         if (slotValues.recurso.heardAs && slotValues.recurso.heardAs !== '') {
-            slotStatus += ' slot recurso fué: ' + slotValues.recurso.heardAs + '. ';
+            slotStatus += ' slot recurso was heard as ' + slotValues.recurso.heardAs + '. ';
         } else {
-            slotStatus += 'slot recurso esta vacio. ';
+            slotStatus += 'slot recurso is empty. ';
         }
         if (slotValues.recurso.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'uno valido ';
+            slotStatus += 'a valid ';
             if(slotValues.recurso.resolved !== slotValues.recurso.heardAs) {
-                slotStatus += 'sinonimo para ' + slotValues.recurso.resolved + '. '; 
+                slotStatus += 'synonym for ' + slotValues.recurso.resolved + '. '; 
                 } else {
-                slotStatus += 'coincidencia. '
+                slotStatus += 'match. '
             } // else {
                 //
         }
-        if (slotValues.recurso.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'no coincidió con ningun slot. ';
+        if (slotValues.recurso.ERstatus === 'ER_SUCCESS_NO_MATCH') { //MJGS NOTA: SE USA ER_SUCCESS... PARA VALIDAR QUE HA COINCIDIDO ALGUN SINONIMO, SI ES UN NUMERO, POR EJEMPLO, BASTARIA CON PONER UN HEARDAS, QUE SIGNIFICA QUE SE HA ODIDO ALGO
+            slotStatus += 'which did not match any slot value. ';
             console.log('***** consider adding "' + slotValues.recurso.heardAs + '" to the custom slot type used by slot recurso! '); 
         }
 
@@ -207,21 +237,21 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: tipo 
         if (slotValues.tipo.heardAs && slotValues.tipo.heardAs !== '') {
-            slotStatus += ' slot tipo fué ' + slotValues.tipo.heardAs + '. ';
+            slotStatus += ' slot tipo was heard as ' + slotValues.tipo.heardAs + '. ';
         } else {
-            slotStatus += 'slot tipo está vacio. ';
+            slotStatus += 'slot tipo is empty. ';
         }
         if (slotValues.tipo.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'uno valido ';
+            slotStatus += 'a valid ';
             if(slotValues.tipo.resolved !== slotValues.tipo.heardAs) {
-                slotStatus += 'sinonimo para ' + slotValues.tipo.resolved + '. '; 
+                slotStatus += 'synonym for ' + slotValues.tipo.resolved + '. '; 
                 } else {
-                slotStatus += 'coincidencia. '
+                slotStatus += 'match. '
             } // else {
                 //
         }
         if (slotValues.tipo.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'no encaja en ningun slot. ';
+            slotStatus += 'which did not match any slot value. ';
             console.log('***** consider adding "' + slotValues.tipo.heardAs + '" to the custom slot type used by slot tipo! '); 
         }
 
@@ -230,21 +260,21 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: presupuesto 
         if (slotValues.presupuesto.heardAs && slotValues.presupuesto.heardAs !== '') {
-            slotStatus += ' slot presupuesto era ' + slotValues.presupuesto.heardAs + '. ';
+            slotStatus += ' slot presupuesto was heard as ' + slotValues.presupuesto.heardAs + '. ';
         } else {
-            slotStatus += 'slot presupuesto está vacio. ';
+            slotStatus += 'slot presupuesto is empty. ';
         }
         if (slotValues.presupuesto.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'uno valido ';
+            slotStatus += 'a valid ';
             if(slotValues.presupuesto.resolved !== slotValues.presupuesto.heardAs) {
-                slotStatus += 'sinonimo para' + slotValues.presupuesto.resolved + '. '; 
+                slotStatus += 'synonym for ' + slotValues.presupuesto.resolved + '. '; 
                 } else {
-                slotStatus += ' coincidencia. '
+                slotStatus += 'match. '
             } // else {
                 //
         }
         if (slotValues.presupuesto.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'no encaja en ningun slot. ';
+            slotStatus += 'which did not match any slot value. ';
             console.log('***** consider adding "' + slotValues.presupuesto.heardAs + '" to the custom slot type used by slot presupuesto! '); 
         }
 
@@ -253,26 +283,72 @@ const RecommendationIntent_Handler =  {
         }
         //   SLOT: temporada 
         if (slotValues.temporada.heardAs && slotValues.temporada.heardAs !== '') {
-            slotStatus += ' slot temporada era ' + slotValues.temporada.heardAs + '. ';
+            slotStatus += ' slot temporada was heard as ' + slotValues.temporada.heardAs + '. ';
         } else {
-            slotStatus += 'slot temporada está vacio. ';
+            slotStatus += 'slot temporada is empty. ';
         }
         if (slotValues.temporada.ERstatus === 'ER_SUCCESS_MATCH') {
-            slotStatus += 'uno valido ';
+            slotStatus += 'a valid ';
             if(slotValues.temporada.resolved !== slotValues.temporada.heardAs) {
-                slotStatus += 'sinonimo para ' + slotValues.temporada.resolved + '. '; 
+                slotStatus += 'synonym for ' + slotValues.temporada.resolved + '. '; 
                 } else {
-                slotStatus += ' coincidencia. '
+                slotStatus += 'match. '
             } // else {
                 //
         }
         if (slotValues.temporada.ERstatus === 'ER_SUCCESS_NO_MATCH') {
-            slotStatus += 'no encaja en ningun slot. ';
+            slotStatus += 'which did not match any slot value. ';
             console.log('***** consider adding "' + slotValues.temporada.heardAs + '" to the custom slot type used by slot temporada! '); 
         }
 
         if( (slotValues.temporada.ERstatus === 'ER_SUCCESS_NO_MATCH') ||  (!slotValues.temporada.heardAs) ) {
            // slotStatus += 'A few valid values are, ' + sayArray(getExampleSlotValues('RecommendationIntent','temporada'), 'or');
+        }
+        //   SLOT: precio 
+        if (slotValues.precio.heardAs && slotValues.precio.heardAs !== '') {
+            slotStatus += ' slot precio was heard as ' + slotValues.precio.heardAs + '. ';
+        } else {
+            slotStatus += 'slot precio is empty. ';
+        }
+        if (slotValues.precio.ERstatus === 'ER_SUCCESS_MATCH') {
+            slotStatus += 'a valid ';
+            if(slotValues.precio.resolved !== slotValues.precio.heardAs) {
+                slotStatus += 'synonym for ' + slotValues.precio.resolved + '. '; 
+                } else {
+                slotStatus += 'match. '
+            } // else {
+                //
+        }
+        if (slotValues.precio.ERstatus === 'ER_SUCCESS_NO_MATCH') {
+            slotStatus += 'which did not match any slot value. ';
+            console.log('***** consider adding "' + slotValues.precio.heardAs + '" to the custom slot type used by slot precio! '); 
+        }
+
+        if( (slotValues.precio.ERstatus === 'ER_SUCCESS_NO_MATCH') ||  (!slotValues.precio.heardAs) ) {
+           // slotStatus += 'A few valid values are, ' + sayArray(getExampleSlotValues('RecommendationIntent','precio'), 'or');
+        }
+        //   SLOT: precio_cuantificador 
+        if (slotValues.precio_cuantificador.heardAs && slotValues.precio_cuantificador.heardAs !== '') {
+            slotStatus += ' slot precio_cuantificador was heard as ' + slotValues.precio_cuantificador.heardAs + '. ';
+        } else {
+            slotStatus += 'slot precio_cuantificador is empty. ';
+        }
+        if (slotValues.precio_cuantificador.ERstatus === 'ER_SUCCESS_MATCH') {
+            slotStatus += 'a valid ';
+            if(slotValues.precio_cuantificador.resolved !== slotValues.precio_cuantificador.heardAs) {
+                slotStatus += 'synonym for ' + slotValues.precio_cuantificador.resolved + '. '; 
+                } else {
+                slotStatus += 'match. '
+            } // else {
+                //
+        }
+        if (slotValues.precio_cuantificador.ERstatus === 'ER_SUCCESS_NO_MATCH') {
+            slotStatus += 'which did not match any slot value. ';
+            console.log('***** consider adding "' + slotValues.precio_cuantificador.heardAs + '" to the custom slot type used by slot precio_cuantificador! '); 
+        }
+
+        if( (slotValues.precio_cuantificador.ERstatus === 'ER_SUCCESS_NO_MATCH') ||  (!slotValues.precio_cuantificador.heardAs) ) {
+           // slotStatus += 'A few valid values are, ' + sayArray(getExampleSlotValues('RecommendationIntent','precio_cuantificador'), 'or');
         }
 
         say += slotStatus;
@@ -280,7 +356,7 @@ const RecommendationIntent_Handler =  {
 
         return responseBuilder
             .speak(say)
-            .reprompt('otra vez por favor, ' + say)
+            .reprompt('try again, ' + say)
             .getResponse();
     },
 };
@@ -293,15 +369,15 @@ const LaunchRequest_Handler =  {
     handle(handlerInput) {
         const responseBuilder = handlerInput.responseBuilder;
 
-        let say = 'Estás en tu ' + invocationName + ' favorita! ¿Que puedo hacer por ti?.';
+        let say = 'hello' + ' and welcome to ' + invocationName + ' ! Say help to hear some options.';
 
         let skillTitle = capitalize(invocationName);
 
 
         return responseBuilder
             .speak(say)
-            .reprompt('Prueba de nuevo, ' + say)
-            .withStandardCard('Bienvenido!', 
+            .reprompt('try again, ' + say)
+            .withStandardCard('Welcome!', 
               'Hello!\nThis is a card for your skill, ' + skillTitle,
                welcomeCardImg.smallImageUrl, welcomeCardImg.largeImageUrl)
             .getResponse();
@@ -314,7 +390,7 @@ const SessionEndedHandler =  {
         return request.type === 'SessionEndedRequest';
     },
     handle(handlerInput) {
-        console.log(`La sesion terminó por la siguiente razón: ${handlerInput.requestEnvelope.request.reason}`);
+        console.log(`Session ended with reason: ${handlerInput.requestEnvelope.request.reason}`);
         return handlerInput.responseBuilder.getResponse();
     }
 };
@@ -326,12 +402,12 @@ const ErrorHandler =  {
     handle(handlerInput, error) {
         const request = handlerInput.requestEnvelope.request;
 
-        console.log(`Error manejado: ${error.message}`);
+        console.log(`Error handled: ${error.message}`);
         // console.log(`Original Request was: ${JSON.stringify(request, null, 2)}`);
 
         return handlerInput.responseBuilder
-            .speak(`Lo siento, tu skill ha petado.  ${error.message} `)
-            .reprompt(`Esto se ha roto.  ${error.message} `)
+            .speak(`Sorry, your skill got this error.  ${error.message} `)
+            .reprompt(`Sorry, your skill got this error.  ${error.message} `)
             .getResponse();
     }
 };
@@ -546,11 +622,11 @@ function timeDelta(t1, t2) {
  
  
     if (span.timeSpanHR < 2) { 
-        span.timeSpanDesc = span.timeSpanMIN + " minutos"; 
+        span.timeSpanDesc = span.timeSpanMIN + " minutes"; 
     } else if (span.timeSpanDAY < 2) { 
-        span.timeSpanDesc = span.timeSpanHR + " horas"; 
+        span.timeSpanDesc = span.timeSpanHR + " hours"; 
     } else { 
-        span.timeSpanDesc = span.timeSpanDAY + " dias"; 
+        span.timeSpanDesc = span.timeSpanDAY + " days"; 
     } 
  
  
@@ -788,28 +864,43 @@ const model = {
             },
             {
               "name": "tipo",
-              "type": "AMAZON.SearchQuery"
+              "type": "TIPO_TYPE"
             },
             {
               "name": "presupuesto",
-              "type": "AMAZON.NUMBER"
+              "type": "PRESUPUESTO_TYPE"
             },
             {
               "name": "temporada",
-              "type": "AMAZON.SearchQuery"
+              "type": "TEMPORADA_TYPE",
+              "samples": [
+                "para {temporada}",
+                "sería para este {temporada}",
+                "quiero ir en {temporada}"
+              ]
+            },
+            {
+              "name": "precio",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "precio_cuantificador",
+              "type": "PRECIO_CUANTIFICADOR_TYPE"
             }
           ],
           "samples": [
-            "encuentra {recurso} a la playa",
-            "quiero hacer una {recurso} a la montaña",
-            "necesito {recurso} de lujo",
-            "necesito {recurso} baratas",
-            "buscame {recurso} gastronomicas",
-            "donde puedo ir el proximo verano para hacer deporte sin gastarme mucho",
-            "recomiendame donde puedo ir para comer bien",
-            "busca {recurso} a todo lujo en la montaña este fin de semana",
-            "vacaciones baratas",
-            "necesito unas vacaciones urgentemente"
+            "encuentra {recurso} con un presupuesto {precio_cuantificador} {precio} euros",
+            "encuentra {recurso} con un presupuesto {precio_cuantificador} a {precio} euros",
+            "encuentra {recurso} a la {tipo}",
+            "quiero hacer una {recurso} a la {tipo}",
+            "necesito {recurso} de {presupuesto}",
+            "necesito {recurso} {presupuesto}",
+            "buscame {recurso} {tipo}",
+            "donde puedo ir {temporada} para hacer {tipo} {presupuesto}",
+            "recomiendame donde puedo ir para {tipo}",
+            "busca {recurso} {presupuesto} en la {tipo} {temporada}",
+            "{recurso} {presupuesto}",
+            "necesito unas {recurso} {temporada}"
           ]
         },
         {
@@ -822,6 +913,14 @@ const model = {
           "values": [
             {
               "name": {
+                "value": "hoteles",
+                "synonyms": [
+                  "restaurantes"
+                ]
+              }
+            },
+            {
+              "name": {
                 "value": "vacaciones",
                 "synonyms": [
                   "viajes",
@@ -832,8 +931,208 @@ const model = {
               }
             }
           ]
+        },
+        {
+          "name": "TIPO_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "deportes",
+                "synonyms": [
+                  "surf",
+                  "ski"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "cultural",
+                "synonyms": [
+                  "arte",
+                  "artistico"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "gastronomico",
+                "synonyms": [
+                  "comer bien",
+                  "comer",
+                  "comida",
+                  "gastronomica"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "montaña",
+                "synonyms": [
+                  "sierra",
+                  "monte"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "playa",
+                "synonyms": [
+                  "mar",
+                  "costa"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PRESUPUESTO_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "barato",
+                "synonyms": [
+                  "menos de 200 ",
+                  "sin gastarme mucho",
+                  "baratos",
+                  "baratas",
+                  "barata",
+                  "a lo pobre",
+                  "poco dinero"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "caro",
+                "synonyms": [
+                  "mas de 200",
+                  "a todo lujo",
+                  "lujo"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TEMPORADA_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "invierno",
+                "synonyms": [
+                  "invernales",
+                  "invernal",
+                  "fresco"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "verano",
+                "synonyms": [
+                  "veraniego",
+                  "calorcito",
+                  "calor"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PRECIO_CUANTIFICADOR_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "menor que",
+                "synonyms": [
+                  "igual a",
+                  "inferior a",
+                  "menos de"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "mayor que",
+                "synonyms": [
+                  "superior a",
+                  "mas de"
+                ]
+              }
+            }
+          ]
         }
       ]
-    }
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "RecommendationIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "recurso",
+              "type": "RECURSO_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "tipo",
+              "type": "TIPO_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "presupuesto",
+              "type": "PRESUPUESTO_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "temporada",
+              "type": "TEMPORADA_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1115325665738.1306280433157"
+              }
+            },
+            {
+              "name": "precio",
+              "type": "AMAZON.NUMBER",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "precio_cuantificador",
+              "type": "PRECIO_CUANTIFICADOR_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            }
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.1115325665738.1306280433157",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "cuándo quieres éstas {recurso}"
+          },
+          {
+            "type": "PlainText",
+            "value": "Cuándo quieres tomarte esas vacaciones"
+          }
+        ]
+      }
+    ]
   }
 };
