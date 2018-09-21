@@ -85,3 +85,6 @@ es lo que realmente va a pronunciar el dispositivo.
 
 https://developer.amazon.com/es/alexa-skills-kit/alexa-developer-preview-program
 alexa-aws-credits
+
+@memodoring
+@germanviscuso
