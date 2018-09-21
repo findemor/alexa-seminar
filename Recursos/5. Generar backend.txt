@@ -1,0 +1,29 @@
+5. Generar backend.txt
+
+
+
+ir a:
+alexa.design/codegenerator
+
+Meter el codigo json generado, y con esto nos fabricara una funcion lambda que funciona y que podemos empezar a jugar con ella.
+
+Luego vamos a AWS y buscamos el servicio Lambda
+
+OJO. EN ESPAÑA HAY QUE ESCOGER REGION IRELAND, Y EN EEUU, VIRGINIA.
+
+Lo vamos a crear como Serverless Application Repository para que no haga falta el deploy del sitio
+
+elegimos: Factskill es la hello-world, la mas sencilla que se puede hacer.
+Le damos un nombre (configure application parameters) reemplazando el nombre por la del skill.
+
+hacemos click en el enlace al servicio que se genera despues de un tiempo.
+
+Copiamos el codigo generado automatiamente, sustituyendo el del servicio y guardamos.
+
+Copiamos el enlace ARN que es la direccion unica de nuestro lambda, y vamos a la skill.
+
+En la skill, vamos a ENDPOINTS y pegamos el ARN en Default Region (si da fallo, comprobar que tenemos el lambda creado en IRELAND)
+
+Hacemos SAve endpoints, y Build Model
+
+Luego Vamos a Tests y los habilitamos.

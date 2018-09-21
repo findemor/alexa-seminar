@@ -63,5 +63,21 @@ Dudas:
 Terminologia:
 
 Single shot invocation (dar una frase con todos los datos estructurados, no es lo que queremos)
+Multi-turn dialogs, es una mejor interaccion, donde cada cosa que dice el usuario puede ser parte de una conversacion, y cada cosa puede mapearse hacia un nuevo intent. El servicio de DialogManager es el que se encarga de hacer esta distincion en función del contexto.
+
 
 Single breath phrase: las frases que diga alexa deben ser como mucho la misma duracion de lo que se puede decir con una sola respiracion, porque mas largo seria aburrido para el usuario
+
+
+
+OUTPUT
+
+Repromt:
+
+estableciendo un repromt en la respuesta, podemos forzar que alexa se quede esperando a que el usuario siga interactuando con la skills. Si no se pone, entonces la skill se cerrara despues. Si el usuario no responde, alexa insistira al cabo de unos segundos.
+
+Cards: 
+En algunos dispositivos de alexa hay pantalla, y en el movil tb, estas cards definen como se visualiza la interaccion en una pantalla.
+
+outputSpeech: 
+es lo que realmente va a pronunciar el dispositivo.
