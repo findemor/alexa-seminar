@@ -53,3 +53,15 @@ Cada uno de estos terminos son realmente Slots (variables), en el Recommendation
 El primero se puede activar en ciertos dispositivos, empresas, etc.
 
 El segundo es hasta 500 usarios.
+
+
+Dudas:
+
+¿Como se conecta alexa a nuestra skill?
+¿Como puedo identificar al usuario en plataformas externas? (steam)
+
+Terminologia:
+
+Single shot invocation (dar una frase con todos los datos estructurados, no es lo que queremos)
+
+Single breath phrase: las frases que diga alexa deben ser como mucho la misma duracion de lo que se puede decir con una sola respiracion, porque mas largo seria aburrido para el usuario

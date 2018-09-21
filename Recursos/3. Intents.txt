@@ -2,10 +2,11 @@
 
 # Que otras cosas puede hacer el usuario. Vincula los Utterances a tus Intents.
 
-* Vacaciones: -> Intent.VacacionesIntent
-  * Descanso, viaje, excursion, escapada.   
-* Hoteles: -> Intent.HotelesIntent
-  * Restaurantes
+* Recurso
+	* Vacaciones: -> Intent.VacacionesIntent
+	  * Descanso, viaje, excursion, escapada.   
+	* Hoteles: -> Intent.HotelesIntent
+	  * Restaurantes
 
 * Tipo: 
   * Playa, costa, mar

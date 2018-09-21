@@ -12,7 +12,10 @@ Ejemplos:
 
 _Es recomendable poner informacion parcial de todas las opciones. Es recomendable tener de 7 a 30 enunciados_
 
-6. ...
+6. ...buscame vacaciones gastronomicas
+7. ...necesito vacaciones baratas
+8. ...quiero hacer una excursion a la montaña
+9. ...encuentra viajes a la playa
 
 
 
